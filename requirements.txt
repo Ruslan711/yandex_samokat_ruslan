@@ -1,0 +1,8 @@
+# requirements.txt
+pytest
+playwright
+pytest-playwright
+allure-pytest
+python-dotenv
+Faker
+pytest-xdist
