@@ -10,6 +10,7 @@ __pycache__/
 
 # Pytest / Allure
 .pytest_cache/
+.mypy_cache/
 allure-results/
 allure-report/
 
@@ -24,9 +25,6 @@ tracing/
 # OS
 .DS_Store
 Thumbs.db
-
-# Secrets
-.env
 
 # Logs
 *.log

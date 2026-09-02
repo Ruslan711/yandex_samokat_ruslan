@@ -1,9 +1,12 @@
 # tests/test_navigation.py
 import re
-import pytest
+
 import allure
+import pytest
 from playwright.sync_api import expect
+
 from config.application import Application
+from config.environments import EnvironmentConfig
 
 
 @allure.feature("Навигация по логотипам")
@@ -11,7 +14,13 @@ class TestNavigation:
 
     @pytest.mark.smoke
     @allure.title("Клик по логотипу Самоката открывает главную страницу")
-    def test_scooter_logo_opens_main_page(self, app: Application):
+    def test_scooter_logo_opens_main_page(
+        self,
+        app: Application,
+        env_config: EnvironmentConfig,
+    ) -> None:
+        main_page_url = f"{env_config.url.rstrip('/')}/"
+
         with allure.step("Открыть страницу заказа"):
             app.order_page.open()
 
@@ -20,11 +29,11 @@ class TestNavigation:
 
         with allure.step("Проверить, что открылась главная в том же окне"):
             app.main_page.check_is_loaded()
-            expect(app.page).to_have_url(re.compile(r".*/$|.*praktikum-services\.ru/?$"))
+            app.main_page.check_url_is(main_page_url)
 
     @pytest.mark.regression
     @allure.title("Клик по логотипу Яндекса открывает dzen/yandex в новом окне")
-    def test_yandex_logo_opens_new_tab(self, app: Application):
+    def test_yandex_logo_opens_new_tab(self, app: Application) -> None:
         with allure.step("Открыть главную страницу"):
             app.main_page.open()
 

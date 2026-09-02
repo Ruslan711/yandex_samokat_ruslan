@@ -1,9 +1,27 @@
 # data/order_data.py
-# Наборы данных для позитивного сценария заказа
+from typing import TypedDict
 
-ORDER_DATA = [
+COLOR_LABELS: dict[str, str] = {
+    "black": "чёрный жемчуг",
+    "grey": "серая безысходность",
+}
+
+ORDER_BUTTONS: list[str] = ["header", "footer"]
+
+
+class OrderData(TypedDict):
+    name: str
+    surname: str
+    address: str
+    metro: str
+    phone: str
+    rent_days: str
+    color: str
+    comment: str
+
+
+ORDER_DATA: list[OrderData] = [
     {
-        "button": "header",
         "name": "Иван",
         "surname": "Петров",
         "address": "ул. Ленина, 10",
@@ -14,7 +32,6 @@ ORDER_DATA = [
         "comment": "Позвонить за час",
     },
     {
-        "button": "footer",
         "name": "Мария",
         "surname": "Смирнова",
         "address": "ул. Пушкина, 5",
