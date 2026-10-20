@@ -1,0 +1,9 @@
+services:
+  tests:
+    build: .
+    environment:
+      BROWSER: chromium
+      HEADLESS: "true"
+    volumes:
+      - ./allure-results:/app/allure-results
+      - ./playwright-report:/app/playwright-report
