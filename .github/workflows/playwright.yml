@@ -1,5 +1,5 @@
 name: UI Tests Pipeline
-on:
+"on":
   workflow_dispatch:
     inputs:
       TARGET_ENV:
