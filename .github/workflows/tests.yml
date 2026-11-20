@@ -1,5 +1,10 @@
 name: UI Tests Pipeline
+
 "on":
+  push:
+    branches: [master]
+  pull_request:
+    branches: [master]
   workflow_dispatch:
     inputs:
       TARGET_ENV:
@@ -24,21 +29,16 @@ name: UI Tests Pipeline
         default: 'chromium'
         type: choice
         options: ['chromium', 'firefox', 'webkit', 'all']
+
 env:
   ACTIONS_ALLOW_USE_UNSECURE_NODE_VERSION: true
+  TARGET_ENV: ${{ github.event.inputs.TARGET_ENV || 'dev' }}
+  TEST_TYPE: ${{ github.event.inputs.TEST_TYPE || 'all' }}
+  TEST_FILES: ${{ github.event.inputs.TEST_FILES || '' }}
+  BROWSER_LIST: ${{ github.event.inputs.BROWSER_LIST || 'chromium' }}
 
 jobs:
-  validate_pipeline_inputs:
-    runs-on: ubuntu-latest
-    steps:
-      - name: Проверка параметров
-        run: |
-          echo "Окружение: ${{ github.event.inputs.TARGET_ENV }}"
-          echo "Браузеры: ${{ github.event.inputs.BROWSER_LIST }}"
-          echo "Параметры проверены"
-
   setup_matrix:
-    needs: validate_pipeline_inputs
     runs-on: ubuntu-latest
     outputs:
       matrix: ${{ steps.set-matrix.outputs.matrix }}
@@ -46,10 +46,11 @@ jobs:
       - name: Настройка матрицы браузеров
         id: set-matrix
         run: |
-          if [[ "${{ github.event.inputs.BROWSER_LIST }}" == "all" ]]; then
+          echo "Окружение: $TARGET_ENV | Тип тестов: $TEST_TYPE | Браузеры: $BROWSER_LIST"
+          if [ "$BROWSER_LIST" = "all" ]; then
             echo 'matrix=["chromium", "firefox", "webkit"]' >> $GITHUB_OUTPUT
           else
-            echo "matrix=[\"${{ github.event.inputs.BROWSER_LIST }}\"]" >> $GITHUB_OUTPUT
+            echo "matrix=[\"$BROWSER_LIST\"]" >> $GITHUB_OUTPUT
           fi
 
   testing:
@@ -64,34 +65,30 @@ jobs:
     steps:
       - name: Чекаут кода
         uses: actions/checkout@v4
-      - name: Подготовка окружения
+
+      - name: Установка зависимостей
         run: |
           pip install --upgrade pip
           pip install -r requirements.txt
           playwright install --with-deps
-      - name: Сбор списка и запуск тестов
+
+      - name: Запуск тестов
         run: |
-          TEST_TARGETS="${{ github.event.inputs.TEST_FILES }}"
-          if [ -z "$TEST_TARGETS" ]; then
-            TEST_TARGETS="tests/"
-          else
-            TEST_TARGETS=$(echo $TEST_TARGETS | tr ',' ' ')
+          TEST_TARGETS="${TEST_FILES:-tests/}"
+          TEST_TARGETS=$(echo "$TEST_TARGETS" | tr ',' ' ')
+          MARKER_ARGS=""
+          if [ "$TEST_TYPE" != "all" ]; then
+            MARKER_ARGS="-m $TEST_TYPE"
           fi
           echo "Запуск тестов в ${{ matrix.browser }}..."
-          if [ "${{ github.event.inputs.TEST_TYPE }}" = "all" ]; then
-            pytest $TEST_TARGETS \
-              --browser ${{ matrix.browser }} \
-              --env=${{ github.event.inputs.TARGET_ENV }} \
-              --alluredir=./allure-results \
-              -v || echo "Тесты завершены"
-          else
-            pytest $TEST_TARGETS -m "${{ github.event.inputs.TEST_TYPE }}" \
-              --browser ${{ matrix.browser }} \
-              --env=${{ github.event.inputs.TARGET_ENV }} \
-              --alluredir=./allure-results \
-              -v || echo "Тесты завершены"
-          fi
+          pytest $TEST_TARGETS $MARKER_ARGS \
+            --browser ${{ matrix.browser }} \
+            --env=$TARGET_ENV \
+            --alluredir=./allure-results \
+            -v
+
       - name: Сохранение результатов
+        if: always()
         uses: actions/upload-artifact@v4
         with:
           name: allure-results-${{ matrix.browser }}
@@ -100,6 +97,7 @@ jobs:
 
   generate_allure_report:
     needs: testing
+    if: always()
     runs-on: ubuntu-latest
     steps:
       - name: Скачивание результатов тестов
@@ -108,12 +106,13 @@ jobs:
           pattern: allure-results-*
           path: allure-results-combined
           merge-multiple: true
+
       - name: Генерация Allure отчёта
         uses: simple-elf/allure-report-action@v1.15
-        if: always()
         with:
           allure_results: allure-results-combined
           allure_report: allure-report
+
       - name: Подготовка к публикации Pages
         uses: actions/upload-pages-artifact@v3
         with:
@@ -121,6 +120,7 @@ jobs:
 
   publish_to_pages:
     needs: generate_allure_report
+    if: always() && github.event_name != 'pull_request' && github.ref == 'refs/heads/master'
     runs-on: ubuntu-latest
     permissions:
       pages: write
