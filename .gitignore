@@ -28,3 +28,8 @@ Thumbs.db
 
 # Logs
 *.log
+
+# Environment variables
+.env
+
+interview_prep_block3.md

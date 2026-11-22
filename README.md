@@ -23,8 +23,8 @@
 
 ```bash
 # Клонировать репозиторий
-git clone <repository-url>
-cd Yandex_Samokat_ruslan
+git clone https://github.com/Ruslan711/yandex_samokat_ruslan.git
+cd yandex_samokat_ruslan
 
 # Создать виртуальное окружение
 python -m venv venv
